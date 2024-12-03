@@ -1,0 +1,2 @@
+pytango==9.3.2
+oracledb==2.5.0
