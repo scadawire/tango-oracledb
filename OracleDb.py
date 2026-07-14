@@ -28,11 +28,11 @@ class OracleDb(Device, metaclass=DeviceMeta):
     cursor = 0
     
     def connect(self,rethrow=False):
-        self.info_stream(f"Connecting to database")
+        self.info_stream("Connecting to database")
         self.last_connect = time.time()
         try:
             self.connection.close()
-            self.info_stream(f"Closed already present connection")
+            self.info_stream("Closed already present connection")
         except: pass
 
         try:
@@ -43,12 +43,12 @@ class OracleDb(Device, metaclass=DeviceMeta):
                 password=self.password,
                 autocommit=True)
             self.cursor = self.connection.cursor()
-            self.info_stream(f"Connected to {self.host} - {self.database}")
+            self.info_stream("Connected to %s - %s", self.host, self.database)
             return True
 
         except Exception as e:
-            self.error_stream(f"Error in connect")
-            self.error_stream(traceback.format_exc())
+            self.error_stream("Error in connect")
+            self.error_stream("%s", traceback.format_exc())
             self.last_error = str(e)
             self.connection = self.cursor = None
             if rethrow: raise e
@@ -60,7 +60,7 @@ class OracleDb(Device, metaclass=DeviceMeta):
         self.last_connect,self.last_update,self.last_error = 0,0,''
         self.connect()
         if self.initial_sql != "":
-            self.debug_stream(f"Executing initial SQL: {self.initial_sql}")
+            self.debug_stream("Executing initial SQL: %s", self.initial_sql)
             self.cursor.execute(self.initial_sql)
         if self.init_dynamic_attributes != "":
             try:
@@ -74,7 +74,7 @@ class OracleDb(Device, metaclass=DeviceMeta):
             except JSONDecodeError as e:
                 attributes = self.init_dynamic_attributes.split(",")
                 for attribute in attributes:
-                    self.info_stream("Init dynamic attribute: " + str(attribute.strip()))
+                    self.info_stream("Init dynamic attribute: %s", str(attribute.strip()))
                     self.add_dynamic_attribute(attribute.strip())
         self.set_state(DevState.ON)
 
@@ -83,7 +83,7 @@ class OracleDb(Device, metaclass=DeviceMeta):
         config = json.loads(configStr)
         sql = config.get("sql")
         params = config.get("params", [])
-        self.debug_stream(f"Executing SQL: {sql}")
+        self.debug_stream("Executing SQL: %s", sql)
         rowsAffected = self.cursor.execute(sql, params)
         result = self.cursor.fetchall()
         return json.dumps({"rowsAffected": rowsAffected, "result": result})
@@ -92,7 +92,7 @@ class OracleDb(Device, metaclass=DeviceMeta):
             variable_type_name="DevString", min_value="", max_value="",
             unit="", write_type_name="", label="", modifier="",
             min_alarm="", max_alarm="", min_warning="", max_warning=""):
-        self.info_stream(f"Adding dynamic attribute : {topic}")
+        self.info_stream("Adding dynamic attribute: %s", topic)
         if topic == "": return
         prop = UserDefaultAttrProp()
         variableType = self.stringValueToVarType(variable_type_name)
@@ -114,11 +114,11 @@ class OracleDb(Device, metaclass=DeviceMeta):
         try:
             result = self.sqlRead(topic)
             if result:
-                self.info_stream(f"Attribute {topic} initial SQL read successful, value: {result}")
+                self.debug_stream("Attribute %s initial SQL read successful, value: %s", topic, result)
             else:
-                self.warning_stream(f"Attribute {topic} returned empty result from SQL read.")
+                self.warn_stream("Attribute %s returned empty result from SQL read.", topic)
         except Exception as e:
-            self.error_stream(f"Error reading attribute {topic} from database: {str(e)}")
+            self.error_stream("Error reading attribute %s from database: %s", topic, str(e))
 
 
     def stringValueToVarType(self, variable_type_name) -> CmdArgType:
@@ -168,13 +168,13 @@ class OracleDb(Device, metaclass=DeviceMeta):
         name = attr.get_name()
         self.dynamicAttributes[name] = self.sqlRead(name)
         value = self.dynamicAttributes[name]
-        self.debug_stream("read value " + str(name) + ": " + str(value))
+        self.debug_stream("read value %s: %s", name, value)
         attr.set_value(self.stringValueToTypeValue(name, value))
 
     def write_dynamic_attr(self, attr):
         value = str(attr.get_write_value())
         name = attr.get_name()
-        self.debug_stream("write value " + str(name) + ": " + str(value))
+        self.debug_stream("write value %s: %s", name, value)
         self.dynamicAttributes[name] = value
         self.sqlWrite(name, self.dynamicAttributes[name])
     
@@ -188,7 +188,7 @@ class OracleDb(Device, metaclass=DeviceMeta):
         select = select.replace(":TABLE:", parts[0])
         select = select.replace(":COL:", parts[1])
         select = select.replace(":WHERE:", parts[2])
-        self.debug_stream(f"Executing select SQL: {select}")
+        self.debug_stream("Executing select SQL: %s", select)
         self.cursor.execute(select)
         result = self.cursor.fetchone()
         return result['field'] if result else ""
@@ -199,8 +199,8 @@ class OracleDb(Device, metaclass=DeviceMeta):
         update = update.replace(":TABLE:", parts[0])
         update = update.replace(":COL:", parts[1])
         update = update.replace(":WHERE:", parts[2])
-        self.debug_stream(f"Executing update SQL: {update}", (value))
-        self.cursor.execute(update, (value))
+        self.debug_stream("Executing update SQL: %s, value: %s", update, value)
+        self.cursor.execute(update, (value,))
 
 if __name__ == "__main__":
     deviceServerName = os.getenv("DEVICE_SERVER_NAME")
