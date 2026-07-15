@@ -110,6 +110,7 @@ class OracleDb(Device, metaclass=DeviceMeta):
         attr = Attr(topic, variableType, writeType)
         attr.set_default_properties(prop)
         self.add_attribute(attr, r_meth=self.read_dynamic_attr, w_meth=self.write_dynamic_attr)
+        self.set_change_event(topic, True, False)
         self.dynamicAttributes[topic] = ""
         try:
             result = self.sqlRead(topic)
@@ -177,6 +178,7 @@ class OracleDb(Device, metaclass=DeviceMeta):
         self.debug_stream("write value %s: %s", name, value)
         self.dynamicAttributes[name] = value
         self.sqlWrite(name, self.dynamicAttributes[name])
+        self.push_change_event(name, self.stringValueToTypeValue(name, value))
     
     def sqlRead(self, name):
         select = "SELECT `:COL:` as field FROM `:TABLE:` WHERE :WHERE: LIMIT 1;"
