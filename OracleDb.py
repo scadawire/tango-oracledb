@@ -135,7 +135,7 @@ class OracleDb(Device, metaclass=DeviceMeta):
             return CmdArgType.DevString
         if(variable_type_name == ""):
             return CmdArgType.DevString
-        raise Exception("given variable_type '" + variable_type + "' unsupported, supported are: DevBoolean, DevLong, DevDouble, DevFloat, DevString")
+        raise Exception("given variable_type '" + variable_type_name + "' unsupported, supported are: DevBoolean, DevLong, DevDouble, DevFloat, DevString")
 
     def stringValueToWriteType(self, write_type_name) -> AttrWriteType:
         if(write_type_name == "READ"):
@@ -193,7 +193,9 @@ class OracleDb(Device, metaclass=DeviceMeta):
         self.debug_stream("Executing select SQL: %s", select)
         self.cursor.execute(select)
         result = self.cursor.fetchone()
-        return result['field'] if result else ""
+        # python-oracledb returns positional tuples, not dict rows; the SELECT
+        # projects a single column, so index 0 is the value.
+        return result[0] if result else ""
         
     def sqlWrite(self, name, value):
         update = "UPDATE `:TABLE:` SET `:COL:` = %s WHERE :WHERE: LIMIT 1;"
